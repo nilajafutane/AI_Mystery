@@ -6,9 +6,20 @@ import { env } from './config/env.js';
 import caseRoutes from './routes/caseRoutes.js';
 const app = express();
 app.use(helmet());
-app.use(cors({ origin: env.clientUrl }));
+app.set('trust proxy', env.isProduction ? 1 : false);
+app.use(cors({
+  origin(origin, callback) {
+    const normalizedOrigin = origin?.replace(/\/$/, '');
+    if (!normalizedOrigin || env.clientOrigins.includes(normalizedOrigin)) return callback(null, true);
+    return callback(new Error('Origin not allowed by CORS'));
+  },
+}));
 app.use(express.json({ limit: '100kb' }));
-app.get('/api/v1/health', (_req, res) => res.json({ success: true, service: 'after-hours-api', database: globalThis.mongoReady ? 'connected' : 'memory-demo' }));
+app.get('/api/v1/health', (_req, res) => {
+  const database = globalThis.mongoReady ? 'connected' : env.isProduction ? 'unavailable' : 'memory-demo';
+  const ready = !env.isProduction || globalThis.mongoReady === true;
+  res.status(ready ? 200 : 503).json({ success: ready, service: 'after-hours-api', database });
+});
 app.use('/api/v1/cases', caseRoutes);
 app.use((req, res) => res.status(404).json({ success: false, message: 'The requested route was not found.' }));
 app.use((error, _req, res, _next) => {
