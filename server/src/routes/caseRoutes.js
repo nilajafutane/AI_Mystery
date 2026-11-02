@@ -1,0 +1,16 @@
+import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { bookmark, generate, getById, getEvidence, getEvidenceById, getNotes, getResult, putNotes, submit } from '../controllers/caseController.js';
+const router = Router();
+const generationLimit = rateLimit({ windowMs: 60 * 60 * 1000, limit: 8, standardHeaders: 'draft-7', legacyHeaders: false, message: { success: false, message: 'Too many case requests. Please try again later.' } });
+router.post('/generate', generationLimit, generate);
+router.get('/:caseId/evidence/:evidenceId', getEvidenceById);
+router.get('/:caseId/evidence', getEvidence);
+router.get('/:caseId', getById);
+router.post('/:caseId/submit', submit);
+router.get('/:caseId/result/:resultId', getResult);
+router.get('/:caseId/notes', getNotes);
+router.put('/:caseId/notes', putNotes);
+router.post('/:caseId/evidence/:evidenceId/bookmark', bookmark);
+router.delete('/:caseId/evidence/:evidenceId/bookmark', bookmark);
+export default router;
